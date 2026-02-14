@@ -6,6 +6,14 @@ const originalCanvas = document.getElementById('originalCanvas');
 const processedCanvas = document.getElementById('processedCanvas');
 const authorInput = document.getElementById('authorInput');
 const copyrightCheckbox = document.getElementById('copyrightCheckbox');
+const intensitySelect = document.getElementById('intensitySelect');
+
+// Intensity multipliers
+const INTENSITY_MULTIPLIERS = {
+    light: 0.5,
+    medium: 1.0,
+    heavy: 3.0
+};
 
 // Cookie helpers
 function setCookie(name, value, days = 365) {
@@ -114,12 +122,15 @@ async function applyProtections(img) {
 
     let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     
-    // Apply transformations
-    imageData = addGaussianNoise(imageData, 8);
-    imageData = addColorJitter(imageData, 0.05);
-    imageData = applyMicroResampling(imageData);
-    imageData = addFrequencyWatermark(imageData);
-    imageData = applyEdgeBlur(imageData);
+    // Get intensity multiplier
+    const intensity = INTENSITY_MULTIPLIERS[intensitySelect.value];
+    
+    // Apply transformations with intensity
+    imageData = addGaussianNoise(imageData, 8 * intensity);
+    imageData = addColorJitter(imageData, 0.05 * intensity);
+    imageData = applyMicroResampling(imageData, intensity);
+    imageData = addFrequencyWatermark(imageData, intensity);
+    imageData = applyEdgeBlur(imageData, intensity);
     
     return imageData;
 }
@@ -170,14 +181,15 @@ function addColorJitter(imageData, amount) {
     return imageData;
 }
 
-function applyMicroResampling(imageData) {
+function applyMicroResampling(imageData, intensity) {
     const { width, height } = imageData;
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
     
-    // Slightly scale down and back up
-    tempCanvas.width = Math.floor(width * 0.998);
-    tempCanvas.height = Math.floor(height * 0.998);
+    // Scale factor based on intensity (more aggressive scaling for higher intensity)
+    const scaleFactor = 1 - (0.002 * intensity);
+    tempCanvas.width = Math.floor(width * scaleFactor);
+    tempCanvas.height = Math.floor(height * scaleFactor);
     tempCtx.putImageData(imageData, 0, 0);
     
     const finalCanvas = document.createElement('canvas');
@@ -189,15 +201,18 @@ function applyMicroResampling(imageData) {
     return finalCtx.getImageData(0, 0, width, height);
 }
 
-function addFrequencyWatermark(imageData) {
+function addFrequencyWatermark(imageData, intensity) {
     const data = imageData.data;
     const { width, height } = imageData;
+    
+    // Pattern strength based on intensity
+    const patternStrength = 3 * intensity;
     
     // Add subtle high-frequency pattern
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
             const i = (y * width + x) * 4;
-            const pattern = Math.sin(x * 0.5) * Math.cos(y * 0.5) * 3;
+            const pattern = Math.sin(x * 0.5) * Math.cos(y * 0.5) * patternStrength;
             
             data[i] = Math.max(0, Math.min(255, data[i] + pattern));
             data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + pattern));
@@ -207,10 +222,10 @@ function addFrequencyWatermark(imageData) {
     return imageData;
 }
 
-function applyEdgeBlur(imageData) {
+function applyEdgeBlur(imageData, intensity) {
     const { width, height, data } = imageData;
-    const blurRadius = 2;
-    const edgeThreshold = Math.min(width, height) * 0.05;
+    const blurRadius = Math.ceil(2 * intensity);
+    const edgeThreshold = Math.min(width, height) * 0.05 * intensity;
     
     const newData = new Uint8ClampedArray(data);
     
