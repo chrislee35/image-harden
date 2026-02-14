@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Protection Tool</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Image Protection Tool</h1>
+        <p class="subtitle">Add noise, watermarks, and metadata to protect your images from AI training</p>
+        
+        <div class="settings-panel">
+            <div class="form-group">
+                <label for="authorInput">Author Name</label>
+                <input type="text" id="authorInput" placeholder="Enter your name (optional)">
+            </div>
+            
+            <div class="form-group checkbox-group">
+                <label>
+                    <input type="checkbox" id="copyrightCheckbox" checked>
+                    <span>Include copyright metadata (No AI Training)</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+            </svg>
+            <p>Click to upload or drag and drop</p>
+            <p class="file-types">PNG, JPG, WEBP (exports as JPEG)</p>
+            <input type="file" id="fileInput" accept="image/*" hidden>
+        </div>
+
+        <div id="processingStatus" class="status hidden">
+            <div class="spinner"></div>
+            <p>Processing image...</p>
+        </div>
+
+        <div id="previewArea" class="preview-area hidden">
+            <div class="preview-column">
+                <h3>Original</h3>
+                <canvas id="originalCanvas"></canvas>
+            </div>
+            <div class="preview-column">
+                <h3>Protected</h3>
+                <canvas id="processedCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
