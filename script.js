@@ -7,6 +7,19 @@ const processedCanvas = document.getElementById('processedCanvas');
 const authorInput = document.getElementById('authorInput');
 const copyrightCheckbox = document.getElementById('copyrightCheckbox');
 const intensitySelect = document.getElementById('intensitySelect');
+const iosDownloadSection = document.getElementById('iosDownloadSection');
+const iosDownloadBtn = document.getElementById('iosDownloadBtn');
+
+// Detect iOS Firefox
+function isIOSFirefox() {
+    const ua = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+    const isFirefox = /FxiOS/i.test(ua);
+    return isIOS && isFirefox;
+}
+
+// Store the protected image data URL for iOS Firefox download
+let protectedImageDataUrl = null;
 
 // Intensity multipliers
 const INTENSITY_MULTIPLIERS = {
@@ -100,7 +113,19 @@ async function processImage(file) {
             // Convert to JPEG with EXIF metadata
             const dataUrl = processedCanvas.toDataURL('image/jpeg', 0.95);
             const protectedDataUrl = addExifMetadata(dataUrl);
-            downloadImage(protectedDataUrl, file.name);
+            
+            // Store for iOS Firefox
+            protectedImageDataUrl = protectedDataUrl;
+            
+            // Handle download based on browser
+            if (isIOSFirefox()) {
+                // Show download button for iOS Firefox
+                iosDownloadSection.classList.remove('hidden');
+            } else {
+                // Auto-download for other browsers
+                downloadImage(protectedDataUrl, file.name);
+                iosDownloadSection.classList.add('hidden');
+            }
             
             // Show preview and reset file input
             processingStatus.classList.add('hidden');
@@ -319,3 +344,53 @@ function downloadImage(dataUrl, originalName) {
     a.click();
     document.body.removeChild(a);
 }
+
+// iOS Firefox download button handler
+iosDownloadBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (protectedImageDataUrl) {
+        // For iOS Firefox, open image in new tab where user can long-press to save
+        const newWindow = window.open();
+        if (newWindow) {
+            newWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <title>Protected Image - Long Press to Save</title>
+                    <style>
+                        body {
+                            margin: 0;
+                            padding: 20px;
+                            background: #f5f5f5;
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                            text-align: center;
+                        }
+                        .instructions {
+                            background: white;
+                            padding: 20px;
+                            border-radius: 12px;
+                            margin-bottom: 20px;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                        }
+                        img {
+                            max-width: 100%;
+                            height: auto;
+                            border-radius: 8px;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="instructions">
+                        <h2>📥 Your Protected Image</h2>
+                        <p>Long press the image below and select "Save Image" to download it to your device.</p>
+                    </div>
+                    <img src="${protectedImageDataUrl}" alt="Protected Image">
+                </body>
+                </html>
+            `);
+            newWindow.document.close();
+        }
+    }
+});
